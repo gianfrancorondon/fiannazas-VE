@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinanzasVE</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <span class="logo-icon">₿</span>
+          <span class="logo-text">FinanzasVE</span>
+        </div>
+        <p class="header-sub">Tu asistente de finanzas personales</p>
+      </div>
+    </header>
+
+    <main class="chat-container">
+      <div class="messages" id="messages">
+        <div class="message assistant">
+          <div class="avatar">F</div>
+          <div class="bubble">
+            <p>¡Hola! Soy FinanzasVE, tu asistente de finanzas personales. Puedo ayudarte con preguntas sobre el dólar, USDT, Binance P2P, remesas, cómo proteger tus ahorros de la inflación, y mucho más.</p>
+            <p>¿En qué te puedo ayudar hoy?</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="input-area">
+      <form class="input-form" id="chat-form">
+        <textarea
+          id="user-input"
+          class="input-field"
+          placeholder="Escribe tu pregunta aquí..."
+          rows="1"
+          autofocus
+        ></textarea>
+        <button type="submit" class="send-btn" id="send-btn" aria-label="Enviar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+      <p class="disclaimer">FinanzasVE brinda información general, no asesoría financiera.</p>
+    </footer>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
