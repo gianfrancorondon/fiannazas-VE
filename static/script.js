@@ -1,150 +1,100 @@
-const messagesEl = document.getElementById("messages");
-const form       = document.getElementById("chat-form");
-const input      = document.getElementById("user-input");
-const sendBtn    = document.getElementById("send-btn");
+const chat = document.getElementById('chat');
+const input = document.getElementById('message-input');
+const sendBtn = document.getElementById('send-btn');
 
-// Conversation history sent to the backend
-const history = [];
+let conversationHistory = [];
 
-// Auto-grow textarea
-input.addEventListener("input", () => {
-  input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 120) + "px";
-});
+// Show welcome message on load
+addMessage('assistant', '¡Hola! Soy FinanzasVE, tu asistente de finanzas personales. Puedo ayudarte con preguntas sobre el dólar, USDT, Binance P2P, remesas, cómo proteger tus ahorros de la inflación, y mucho más.\n\n¿En qué te puedo ayudar hoy?');
 
-// Submit on Enter (Shift+Enter = newline)
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    form.requestSubmit();
-  }
-});
+function addMessage(role, content) {
+  const msg = document.createElement('div');
+  msg.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'user' ? 'Tú' : 'F';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = content;
+  msg.appendChild(avatar);
+  msg.appendChild(bubble);
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+  return bubble;
+}
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
-  // Add user message to UI and history
-  appendMessage("user", text);
-  history.push({ role: "user", content: text });
+  addMessage('user', text);
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
 
-  // Clear input
-  input.value = "";
-  input.style.height = "auto";
-  setLoading(true);
-
-  // Create assistant bubble (streaming)
-  const bubble = appendMessage("assistant", "", true);
+  const responseBubble = addMessage('assistant', '');
+  let fullResponse = '';
 
   try {
-    const res = await fetch("/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        message: text,
+        history: conversationHistory
+      })
     });
-
-    if (!res.ok) {
-      bubble.textContent = "Error al conectar con el servidor. Intenta de nuevo.";
-      bubble.classList.remove("streaming");
-      history.pop();
-      return;
-    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let fullText = "";
+    let buffer = '';
 
     while (true) {
-      const { done, value } = await reader.read();
+      const {done, value} = await reader.read();
       if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
       for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const raw = line.slice(6).trim();
-        if (raw === "[DONE]") continue;
-
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed.error) {
-            bubble.textContent = "Error: " + parsed.error;
-            history.pop();
-            break;
-          }
-          if (parsed.text) {
-            fullText += parsed.text;
-            bubble.innerHTML = formatText(fullText);
-            scrollToBottom();
-          }
-        } catch {
-          // skip malformed lines
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.text) {
+              fullResponse += data.text;
+              responseBubble.textContent = fullResponse;
+              chat.scrollTop = chat.scrollHeight;
+            }
+            if (data.error) {
+              responseBubble.textContent = 'Lo siento, hubo un error. Intenta de nuevo.';
+              fullResponse = '';
+            }
+          } catch (e) {}
         }
       }
     }
 
-    bubble.classList.remove("streaming");
-
-    if (fullText) {
-      history.push({ role: "assistant", content: fullText });
+    if (fullResponse) {
+      conversationHistory.push({role: 'user', content: text});
+      conversationHistory.push({role: 'assistant', content: fullResponse});
     }
-  } catch (err) {
-    bubble.textContent = "Error de conexión. Verifica tu internet e intenta de nuevo.";
-    bubble.classList.remove("streaming");
-    history.pop();
+  } catch (e) {
+    responseBubble.textContent = 'Lo siento, hubo un error de conexión. Intenta de nuevo.';
   } finally {
-    setLoading(false);
+    sendBtn.disabled = false;
     input.focus();
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
   }
 });
 
-function appendMessage(role, text, streaming = false) {
-  const wrap = document.createElement("div");
-  wrap.className = `message ${role}`;
-
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = role === "assistant" ? "F" : "Tú";
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble" + (streaming ? " streaming" : "");
-
-  if (text) {
-    bubble.innerHTML = formatText(text);
-  }
-
-  wrap.appendChild(avatar);
-  wrap.appendChild(bubble);
-  messagesEl.appendChild(wrap);
-  scrollToBottom();
-
-  return bubble;
-}
-
-function formatText(text) {
-  // Escape HTML then convert line breaks to paragraphs
-  const escaped = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  const paragraphs = escaped
-    .split(/\n\n+/)
-    .map(p => p.replace(/\n/g, "<br>"))
-    .filter(p => p.trim())
-    .map(p => `<p>${p}</p>`)
-    .join("");
-
-  return paragraphs || `<p>${escaped}</p>`;
-}
-
-function setLoading(loading) {
-  sendBtn.disabled = loading;
-  input.disabled   = loading;
-}
-
-function scrollToBottom() {
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+});
