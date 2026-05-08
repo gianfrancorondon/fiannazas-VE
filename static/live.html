@@ -23,20 +23,15 @@
           <h2 class="section-title">💱 Tasas del día</h2>
           <span class="live-badge"><span class="live-dot"></span>EN VIVO</span>
         </div>
-
         <div id="rates-grid" class="rates-grid">
-          <div class="rate-card loading">
-            <p>Cargando tasas…</p>
-          </div>
+          <div class="rate-card loading"><p>Cargando tasas…</p></div>
         </div>
-
         <p class="updated-text" id="updated-text">Actualizando…</p>
       </section>
 
       <section class="calc-section">
         <h2 class="section-title">🧮 Calculadora</h2>
         <p class="section-sub">Convierte entre bolívares, USD y USDT al instante</p>
-
         <div class="calc-box">
           <div class="calc-row">
             <label>Bolívares (Bs.)</label>
@@ -55,7 +50,6 @@
             <input type="number" id="calc-bcv" placeholder="0" step="any" />
           </div>
         </div>
-
         <p class="calc-note">Las tasas se actualizan cada 5 minutos. Datos de DolarAPI.com</p>
       </section>
     </main>
@@ -67,6 +61,7 @@
 
   <script>
     let currentRates = {};
+    let isUpdating = false;
 
     async function loadRates() {
       try {
@@ -78,7 +73,7 @@
           'Actualizado: ' + new Date().toLocaleTimeString('es-VE', {hour: '2-digit', minute: '2-digit'});
       } catch (e) {
         document.getElementById('rates-grid').innerHTML =
-          '<div class="rate-card error"><p>No se pudieron cargar las tasas. Intenta de nuevo en un momento.</p></div>';
+          '<div class="rate-card error"><p>No se pudieron cargar las tasas.</p></div>';
       }
     }
 
@@ -93,55 +88,38 @@
       order.forEach(r => {
         if (rates[r.key]) {
           const price = rates[r.key].price.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-          html += `
-            <div class="rate-card">
-              <div class="rate-emoji">${r.emoji}</div>
-              <div class="rate-label">${r.label}</div>
-              <div class="rate-price">Bs. ${price}</div>
-              <div class="rate-sub">${r.subtitle}</div>
-            </div>
-          `;
+          html += '<div class="rate-card"><div class="rate-emoji">' + r.emoji + '</div><div class="rate-label">' + r.label + '</div><div class="rate-price">Bs. ' + price + '</div><div class="rate-sub">' + r.subtitle + '</div></div>';
         }
       });
       grid.innerHTML = html || '<div class="rate-card error"><p>Sin datos disponibles</p></div>';
     }
 
-    // Calculator logic
-    const inputs = ['calc-bs', 'calc-usd', 'calc-usdt', 'calc-bcv'];
-    let isUpdating = false;
-
-    function setupCalculator() {
-      inputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', (e) => {
-          if (isUpdating) return;
-          const val = parseFloat(e.target.value) || 0;
-          isUpdating = true;
-          calculate(id, val);
-          isUpdating = false;
-        });
-      });
-    }
-
     function calculate(sourceId, value) {
-      const paralelo = currentRates.paralelo?.price || 0;
-      const binance = currentRates.binance?.price || 0;
-      const bcv = currentRates.bcv?.price || 0;
-
+      if (isUpdating) return;
+      isUpdating = true;
+      const paralelo = currentRates.paralelo ? currentRates.paralelo.price : 0;
+      const binance = currentRates.binance ? currentRates.binance.price : 0;
+      const bcv = currentRates.bcv ? currentRates.bcv.price : 0;
       let bs = 0;
       if (sourceId === 'calc-bs') bs = value;
-      else if (sourceId === 'calc-usd' && paralelo) bs = value * paralelo;
-      else if (sourceId === 'calc-usdt' && binance) bs = value * binance;
-      else if (sourceId === 'calc-bcv' && bcv) bs = value * bcv;
-
+      else if (sourceId === 'calc-usd') bs = paralelo ? value * paralelo : 0;
+      else if (sourceId === 'calc-usdt') bs = binance ? value * binance : 0;
+      else if (sourceId === 'calc-bcv') bs = bcv ? value * bcv : 0;
       if (sourceId !== 'calc-bs') document.getElementById('calc-bs').value = bs ? bs.toFixed(2) : '';
       if (sourceId !== 'calc-usd') document.getElementById('calc-usd').value = (bs && paralelo) ? (bs / paralelo).toFixed(2) : '';
       if (sourceId !== 'calc-usdt') document.getElementById('calc-usdt').value = (bs && binance) ? (bs / binance).toFixed(2) : '';
       if (sourceId !== 'calc-bcv') document.getElementById('calc-bcv').value = (bs && bcv) ? (bs / bcv).toFixed(2) : '';
+      isUpdating = false;
     }
 
+    ['calc-bs', 'calc-usd', 'calc-usdt', 'calc-bcv'].forEach(id => {
+      document.getElementById(id).addEventListener('input', (e) => {
+        calculate(id, parseFloat(e.target.value) || 0);
+      });
+    });
+
     loadRates();
-    setupCalculator();
-    setInterval(loadRates, 60000); // refresh every 60s
+    setInterval(loadRates, 60000);
   </script>
 </body>
 </html>
