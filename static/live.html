@@ -31,7 +31,7 @@
 
       <section class="calc-section">
         <h2 class="section-title">🧮 Calculadora</h2>
-        <p class="section-sub">Convierte entre bolívares, USD y USDT al instante</p>
+        <p class="section-sub">Convierte entre bolívares y dólares al instante</p>
         <div class="calc-box">
           <div class="calc-row">
             <label>Bolívares (Bs.)</label>
@@ -40,10 +40,6 @@
           <div class="calc-row">
             <label>USD (Paralelo)</label>
             <input type="number" id="calc-usd" placeholder="0" step="any" />
-          </div>
-          <div class="calc-row">
-            <label>USDT (Binance P2P)</label>
-            <input type="number" id="calc-usdt" placeholder="0" step="any" />
           </div>
           <div class="calc-row">
             <label>USD (BCV oficial)</label>
@@ -81,7 +77,6 @@
       const grid = document.getElementById('rates-grid');
       const order = [
         {key: 'paralelo', label: 'Paralelo', emoji: '💵', subtitle: 'Tasa de la calle'},
-        {key: 'binance', label: 'Binance P2P', emoji: '₮', subtitle: 'USDT a bolívares'},
         {key: 'bcv', label: 'BCV', emoji: '🏦', subtitle: 'Tasa oficial'}
       ];
       let html = '';
@@ -98,21 +93,18 @@
       if (isUpdating) return;
       isUpdating = true;
       const paralelo = currentRates.paralelo ? currentRates.paralelo.price : 0;
-      const binance = currentRates.binance ? currentRates.binance.price : 0;
       const bcv = currentRates.bcv ? currentRates.bcv.price : 0;
       let bs = 0;
       if (sourceId === 'calc-bs') bs = value;
       else if (sourceId === 'calc-usd') bs = paralelo ? value * paralelo : 0;
-      else if (sourceId === 'calc-usdt') bs = binance ? value * binance : 0;
       else if (sourceId === 'calc-bcv') bs = bcv ? value * bcv : 0;
       if (sourceId !== 'calc-bs') document.getElementById('calc-bs').value = bs ? bs.toFixed(2) : '';
       if (sourceId !== 'calc-usd') document.getElementById('calc-usd').value = (bs && paralelo) ? (bs / paralelo).toFixed(2) : '';
-      if (sourceId !== 'calc-usdt') document.getElementById('calc-usdt').value = (bs && binance) ? (bs / binance).toFixed(2) : '';
       if (sourceId !== 'calc-bcv') document.getElementById('calc-bcv').value = (bs && bcv) ? (bs / bcv).toFixed(2) : '';
       isUpdating = false;
     }
 
-    ['calc-bs', 'calc-usd', 'calc-usdt', 'calc-bcv'].forEach(id => {
+    ['calc-bs', 'calc-usd', 'calc-bcv'].forEach(id => {
       document.getElementById(id).addEventListener('input', (e) => {
         calculate(id, parseFloat(e.target.value) || 0);
       });
