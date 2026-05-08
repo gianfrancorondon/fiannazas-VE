@@ -1,26 +1,76 @@
 const chat = document.getElementById('chat');
 const input = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
+const newChatBtn = document.getElementById('new-chat-btn');
 
-let conversationHistory = [];
+const STORAGE_KEY = 'finanzasve_history_v1';
+let conversationHistory = loadHistory();
 
-// Show welcome message on load
-addMessage('assistant', '¡Hola! Soy FinanzasVE, tu asistente de finanzas personales. Puedo ayudarte con preguntas sobre el dólar, USDT, Binance P2P, remesas, cómo proteger tus ahorros de la inflación, y mucho más.\n\n¿En qué te puedo ayudar hoy?');
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
 
-function addMessage(role, content) {
+function saveHistory() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationHistory));
+  } catch (e) {}
+}
+
+function clearHistory() {
+  conversationHistory = [];
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  chat.innerHTML = '';
+  showWelcome();
+}
+
+function showWelcome() {
+  if (conversationHistory.length === 0) {
+    addMessage('assistant', '¡Hola! Soy FinanzasVE, tu asistente de finanzas personales. Puedo ayudarte con preguntas sobre el dólar, USDT, Binance P2P, remesas, IGTF, cómo proteger tus ahorros de la inflación, y más.\n\n¿En qué te puedo ayudar hoy?', false);
+  }
+}
+
+function addMessage(role, content, save = true) {
   const msg = document.createElement('div');
-  msg.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+  msg.className = 'msg msg-' + (role === 'user' ? 'user' : 'assistant');
+
+  const inner = document.createElement('div');
+  inner.className = 'msg-inner';
+
   const avatar = document.createElement('div');
-  avatar.className = 'avatar';
+  avatar.className = 'msg-avatar';
   avatar.textContent = role === 'user' ? 'Tú' : 'F';
+
   const bubble = document.createElement('div');
-  bubble.className = 'bubble';
+  bubble.className = 'msg-bubble';
   bubble.textContent = content;
-  msg.appendChild(avatar);
-  msg.appendChild(bubble);
+
+  inner.appendChild(avatar);
+  inner.appendChild(bubble);
+  msg.appendChild(inner);
   chat.appendChild(msg);
   chat.scrollTop = chat.scrollHeight;
+
+  if (save && content) {
+    conversationHistory.push({role, content});
+    saveHistory();
+  }
   return bubble;
+}
+
+function renderHistory() {
+  chat.innerHTML = '';
+  if (conversationHistory.length === 0) {
+    showWelcome();
+    return;
+  }
+  conversationHistory.forEach(msg => {
+    addMessage(msg.role, msg.content, false);
+  });
 }
 
 async function sendMessage() {
@@ -32,7 +82,8 @@ async function sendMessage() {
   input.style.height = 'auto';
   sendBtn.disabled = true;
 
-  const responseBubble = addMessage('assistant', '');
+  const responseBubble = addMessage('assistant', '', false);
+  responseBubble.classList.add('streaming');
   let fullResponse = '';
 
   try {
@@ -41,7 +92,7 @@ async function sendMessage() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         message: text,
-        history: conversationHistory
+        history: conversationHistory.slice(0, -1)
       })
     });
 
@@ -73,12 +124,15 @@ async function sendMessage() {
       }
     }
 
+    responseBubble.classList.remove('streaming');
+
     if (fullResponse) {
-      conversationHistory.push({role: 'user', content: text});
       conversationHistory.push({role: 'assistant', content: fullResponse});
+      saveHistory();
     }
   } catch (e) {
     responseBubble.textContent = 'Lo siento, hubo un error de conexión. Intenta de nuevo.';
+    responseBubble.classList.remove('streaming');
   } finally {
     sendBtn.disabled = false;
     input.focus();
@@ -96,5 +150,14 @@ input.addEventListener('keydown', (e) => {
 
 input.addEventListener('input', () => {
   input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+  input.style.height = Math.min(input.scrollHeight, 160) + 'px';
 });
+
+newChatBtn.addEventListener('click', () => {
+  if (confirm('¿Empezar nueva conversación? Tu historial actual se borrará.')) {
+    clearHistory();
+  }
+});
+
+renderHistory();
+input.focus();

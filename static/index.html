@@ -2,28 +2,37 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Chat — FinanzasVE</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
-  <div class="app">
-    <header class="header">
-      <div class="header-inner">
-        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
-          <span class="logo-icon">₿</span>
-          <span class="logo-text">FinanzasVE</span>
-        </a>
-        <a href="/live" style="color:white;text-decoration:none;font-size:14px;font-weight:600;opacity:0.9;">⚡ Herramientas</a>
+<body class="chat-body">
+  <header class="chat-header">
+    <div class="chat-header-inner">
+      <a href="/" class="chat-back">
+        <span class="logo-mark">₿</span>
+        <span class="logo-name">FinanzasVE</span>
+      </a>
+      <div class="chat-actions">
+        <button id="new-chat-btn" class="header-btn" title="Nueva conversación">+ Nuevo</button>
+        <a href="/live" class="header-btn">⚡ Tasas</a>
       </div>
-    </header>
-    <div class="chat" id="chat"></div>
-    <div class="input-area">
-      <div class="input-row">
-        <textarea id="message-input" placeholder="Escribe tu pregunta aquí..." rows="1"></textarea>
-        <button id="send-btn">➤</button>
+    </div>
+  </header>
+
+  <main class="chat-main">
+    <div class="chat-scroll" id="chat"></div>
+  </main>
+
+  <div class="chat-input-wrap">
+    <div class="chat-input-inner">
+      <div class="chat-input-row">
+        <textarea id="message-input" placeholder="Pregúntame sobre dólar, USDT, remesas..." rows="1"></textarea>
+        <button id="send-btn" aria-label="Enviar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
       </div>
-      <p class="disclaimer">FinanzasVE brinda información general, no asesoría financiera.</p>
+      <p class="chat-disclaimer">FinanzasVE brinda información general, no asesoría financiera.</p>
     </div>
   </div>
   <script src="/static/script.js"></script>
