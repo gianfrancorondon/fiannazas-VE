@@ -103,29 +103,52 @@ def get_live_rates():
     if RATE_CACHE["data"] and (now - RATE_CACHE["timestamp"]) < 300:
         return RATE_CACHE["data"]
     rates = {}
+    # Try pyDolarVenezuela first (aggregates AlCambio, BCV, EnParaleloVzla)
     try:
-        r = requests.get("https://ve.dolarapi.com/v1/dolares", timeout=5)
+        r = requests.get("https://pydolarve.org/api/v1/dollar?page=alcambio", timeout=6)
         if r.status_code == 200:
             data = r.json()
-            for item in data:
-                if item.get("fuente") == "oficial":
-                    rates["bcv"] = {"price": item["promedio"], "name": "BCV (Oficial)"}
-                elif item.get("fuente") == "paralelo":
-                    rates["paralelo"] = {"price": item["promedio"], "name": "Paralelo"}
+            for m in data.get("monitors", {}).values():
+                title = (m.get("title") or "").lower()
+                price = m.get("price")
+                if not price:
+                    continue
+                if "bcv" in title or "oficial" in title:
+                    rates["bcv"] = {"price": price, "name": "BCV (Oficial)"}
+                elif "paralelo" in title or "promedio" in title:
+                    rates["paralelo"] = {"price": price, "name": "Paralelo"}
+                elif "usdt" in title or "binance" in title:
+                    rates["binance"] = {"price": price, "name": "Binance P2P"}
+    except Exception as e:
+        print(f"pydolarve alcambio failed: {e}")
+    # Also try the EnParaleloVzla page for paralelo
+    if "paralelo" not in rates:
         try:
-            r2 = requests.get("https://ve.dolarapi.com/v1/dolares/binance", timeout=5)
+            r2 = requests.get("https://pydolarve.org/api/v1/dollar?page=enparalelovzla", timeout=6)
             if r2.status_code == 200:
                 d2 = r2.json()
-                if d2.get("promedio"):
-                    rates["binance"] = {"price": d2["promedio"], "name": "Binance P2P"}
+                for m in d2.get("monitors", {}).values():
+                    if m.get("price"):
+                        rates["paralelo"] = {"price": m["price"], "name": "Paralelo"}
+                        break
         except Exception as e:
-            print(f"Binance fetch failed: {e}")
+            print(f"pydolarve paralelo failed: {e}")
+    # Fallback to DolarAPI if pyDolarVenezuela returned nothing
+    if not rates:
+        try:
+            r3 = requests.get("https://ve.dolarapi.com/v1/dolares", timeout=5)
+            if r3.status_code == 200:
+                for item in r3.json():
+                    if item.get("fuente") == "oficial":
+                        rates["bcv"] = {"price": item["promedio"], "name": "BCV (Oficial)"}
+                    elif item.get("fuente") == "paralelo":
+                        rates["paralelo"] = {"price": item["promedio"], "name": "Paralelo"}
+        except Exception as e:
+            print(f"dolarapi fallback failed: {e}")
+    if rates:
         RATE_CACHE["data"] = rates
         RATE_CACHE["timestamp"] = now
-        return rates
-    except Exception as e:
-        print(f"Error fetching rates: {e}")
-        return RATE_CACHE["data"] or {}
+    return rates if rates else (RATE_CACHE["data"] or {})
 
 @app.route("/")
 def home():
