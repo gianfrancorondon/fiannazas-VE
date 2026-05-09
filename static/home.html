@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FinanzasVE — Tu asistente financiero</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="FinanzasVE" />
+  <meta name="theme-color" content="#003893" />
+  <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body class="home-body">
@@ -18,14 +23,21 @@
 
     <main class="home-main">
       <h1 class="home-headline">¿Qué necesitas hoy?</h1>
-      <p class="home-subhead">Pregúntale lo que quieras sobre plata</p>
+      <p class="home-subhead">Elige una opción para empezar</p>
 
-      <div class="home-cards home-cards-single">
+      <div class="home-cards">
         <a href="/chat-page" class="home-card card-chat">
           <div class="card-icon">💬</div>
           <h2 class="card-title">Hablar con FinanzasVE</h2>
           <p class="card-desc">Pregúntale lo que quieras sobre dólar, USDT, remesas, IGTF, o cómo proteger tu plata.</p>
           <span class="card-cta">Iniciar chat →</span>
+        </a>
+
+        <a href="/live" class="home-card card-live">
+          <div class="card-icon">⚡</div>
+          <h2 class="card-title">Herramientas en vivo</h2>
+          <p class="card-desc">Tasas del día actualizadas y calculadora de bolívares, USD y USDT.</p>
+          <span class="card-cta">Ver herramientas →</span>
         </a>
       </div>
 
@@ -43,11 +55,40 @@
           <span>Hecho para venezolanos</span>
         </div>
       </div>
+
+      <div id="install-prompt" class="install-prompt" style="display:none;">
+        <span>📱 Agrega FinanzasVE a tu pantalla de inicio</span>
+        <button id="install-btn" class="install-btn">Instalar</button>
+        <button id="install-dismiss" class="install-dismiss">×</button>
+      </div>
     </main>
 
     <footer class="home-footer">
       <p>FinanzasVE brinda información general, no asesoría financiera.</p>
     </footer>
   </div>
+
+  <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!localStorage.getItem('install_dismissed')) {
+        document.getElementById('install-prompt').style.display = 'flex';
+      }
+    });
+    document.getElementById('install-btn')?.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        document.getElementById('install-prompt').style.display = 'none';
+      }
+    });
+    document.getElementById('install-dismiss')?.addEventListener('click', () => {
+      localStorage.setItem('install_dismissed', '1');
+      document.getElementById('install-prompt').style.display = 'none';
+    });
+  </script>
 </body>
 </html>
