@@ -162,6 +162,10 @@ def live():
 def chat_page():
     return send_from_directory('static', 'index.html')
 
+@app.route('/inspiracion')
+def inspiracion():
+    return send_from_directory('static', 'inspiracion.html')
+
 @app.route('/api/rates')
 def api_rates():
     return jsonify(get_live_rates())
